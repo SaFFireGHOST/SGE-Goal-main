@@ -1,0 +1,62 @@
+{
+  "R10_camera_zoom": {
+    "mean": 0.131,
+    "count": 2000
+  },
+  "R11_camera_crop": {
+    "mean": 0.002,
+    "count": 2000
+  },
+  "R12_camera_perspective": {
+    "mean": 0.0825,
+    "count": 2000
+  },
+  "R13_photorealism": {
+    "mean": 0.542,
+    "count": 2000
+  },
+  "R14_source_adherence": {
+    "mean": 0.257,
+    "count": 2000
+  },
+  "R15_destination_adherence": {
+    "mean": 0.376,
+    "count": 2000
+  },
+  "R1_unmentioned_stationary_objects_count": {
+    "mean": 0.521,
+    "count": 2000
+  },
+  "R2_unmentioned_moved_within_scene_count": {
+    "mean": 0.5225,
+    "count": 2000
+  },
+  "R3_unmentioned_removed_from_scene_count": {
+    "mean": 0.555,
+    "count": 2000
+  },
+  "R4_hallucinated_objects_count": {
+    "mean": 0.584,
+    "count": 2000
+  },
+  "R5_unrelated_color_change": {
+    "mean": 0.365,
+    "count": 2000
+  },
+  "R6_unrelated_texture_change": {
+    "mean": 0.2685,
+    "count": 2000
+  },
+  "R7_unrelated_shape_change": {
+    "mean": 0.04,
+    "count": 2000
+  },
+  "R8_scene_darker": {
+    "mean": 0.95,
+    "count": 2000
+  },
+  "R9_scene_brighter": {
+    "mean": 0.009,
+    "count": 2000
+  }
+}

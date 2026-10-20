@@ -1,0 +1,68 @@
+{
+  "model_group": "flux-kontext-dev",
+  "dataset": "libero_10_90_combi_test_data",
+  "total_test_cases": 376,
+  "dimensions": {
+    "action_state_change_accuracy": {
+      "average_score": 0.196809,
+      "num_test_cases": 376
+    },
+    "aesthetic_quality": {
+      "average_score": 0.197364,
+      "num_test_cases": 376
+    },
+    "blending_naturalness": {
+      "average_score": 0.27859,
+      "num_test_cases": 376
+    },
+    "composition_interaction": {
+      "average_score": 0.470669,
+      "num_test_cases": 376
+    },
+    "editing_artifacts": {
+      "average_score": 0.638298,
+      "num_test_cases": 376
+    },
+    "instruction_following_macro": {
+      "average_score": 0.126995,
+      "num_test_cases": 376
+    },
+    "local_attribute_accuracy": {
+      "average_score": 0.196809,
+      "num_test_cases": 376
+    },
+    "non_edited_region_fidelity": {
+      "average_score": 0.842578,
+      "num_test_cases": 376
+    },
+    "object_manipulation_accuracy": {
+      "average_score": 0.196809,
+      "num_test_cases": 376
+    },
+    "overall_image_quality": {
+      "average_score": 0.047433,
+      "num_test_cases": 376
+    },
+    "physical_plausibility": {
+      "average_score": 0.295061,
+      "num_test_cases": 376
+    },
+    "spatial_accuracy": {
+      "average_score": 0.196809,
+      "num_test_cases": 376
+    },
+    "subject_identity_fidelity": {
+      "average_score": 0.792378,
+      "num_test_cases": 376
+    },
+    "text_content_style_accuracy": {
+      "average_score": 0.048936,
+      "num_test_cases": 376
+    },
+    "world_knowledge_reasoning": {
+      "average_score": 0.276596,
+      "num_test_cases": 376
+    }
+  },
+  "weighted_average_of_dimensions": 0.378134
+}

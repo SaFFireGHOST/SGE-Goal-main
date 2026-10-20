@@ -1,0 +1,102 @@
+{
+  "timestamp": "2026-05-09T12:50:21.054384Z",
+  "data_dir": "/home/riddhi/SGE-Goal-Inferencers/flux-kontext-dev-ft/bridge_and_calvin/dummy_test_data",
+  "fer_checkpoint_dir": "/home/riddhi/SGE-Goal-Inferencers/flux-kontext-dev-ft/bridge_and_calvin/bridge-fer-mask-prediction-checkpoint/kontext-bridge-fer-checkpoint-epoch-38",
+  "image_editing_checkpoint_dir": "/home/riddhi/SGE-Goal-Inferencers/flux-kontext-dev-ft/bridge_and_calvin/bridge-image-editing-checkpoint/kontext-ie-checkpoint-epoch-18",
+  "repeats": 1,
+  "summaries": [
+    {
+      "component": "IER",
+      "runs": 1,
+      "mean_s": 24.699301179,
+      "std_s": 0.0,
+      "min_s": 24.699301179,
+      "max_s": 24.699301179,
+      "all_s": [
+        24.699301179
+      ]
+    },
+    {
+      "component": "FER",
+      "runs": 1,
+      "mean_s": 51.581731950000005,
+      "std_s": 0.0,
+      "min_s": 51.581731950000005,
+      "max_s": 51.581731950000005,
+      "all_s": [
+        51.581731950000005
+      ]
+    },
+    {
+      "component": "IMAGE_EDITING",
+      "runs": 1,
+      "mean_s": 29.172966951999967,
+      "std_s": 0.0,
+      "min_s": 29.172966951999967,
+      "max_s": 29.172966951999967,
+      "all_s": [
+        29.172966951999967
+      ]
+    },
+    {
+      "component": "TOTAL",
+      "runs": 1,
+      "mean_s": 105.45400008099998,
+      "std_s": 0.0,
+      "min_s": 105.45400008099998,
+      "max_s": 105.45400008099998,
+      "all_s": [
+        105.45400008099998
+      ]
+    },
+    {
+      "component": "FER_STEP",
+      "runs": 1,
+      "mean_s": 0.5158173195000001,
+      "std_s": 0.0,
+      "min_s": 0.5158173195000001,
+      "max_s": 0.5158173195000001,
+      "all_s": [
+        0.5158173195000001
+      ]
+    },
+    {
+      "component": "IMAGE_EDIT_STEP",
+      "runs": 1,
+      "mean_s": 0.2917296695199997,
+      "std_s": 0.0,
+      "min_s": 0.2917296695199997,
+      "max_s": 0.2917296695199997,
+      "all_s": [
+        0.2917296695199997
+      ]
+    }
+  ],
+  "metric_runs": {
+    "ier": [
+      {
+        "component": "IER",
+        "inference_s": 24.699301179,
+        "test_cases": 10
+      }
+    ],
+    "fer": [
+      {
+        "component": "FER",
+        "mean_step_s": 0.5158173195000001,
+        "num_inference_steps": 10,
+        "pipeline_inference_s": 51.581731950000005,
+        "successful_pipeline_calls": 10
+      }
+    ],
+    "image_editing": [
+      {
+        "component": "IMAGE_EDITING",
+        "mean_step_s": 0.2917296695199997,
+        "num_inference_steps": 10,
+        "pipeline_inference_s": 29.172966951999967,
+        "successful_pipeline_calls": 10
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+# I2I-Bench Single-Reference Evaluator Requirements
+# Based on the I2I-Bench paper evaluation methodology
+
+# Core dependencies
+numpy>=1.20.0
+Pillow>=9.0.0
+
+# PyTorch - Required for model inference
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Hugging Face Transformers - Required for LMM and specialist models
+transformers>=4.40.0
+
+# Qwen2.5-VL specific dependencies
+qwen-vl-utils>=0.0.2
+
+# For GOT-OCR2.0
+tiktoken>=0.5.0
+verovio>=4.0.0
+
+# Additional utilities
+tqdm>=4.65.0
+scipy>=1.10.0
+opencv-python>=4.8.0
+
+# Optional: For better image processing
+scikit-image>=0.21.0
+
+# Note: Some specialist models may require additional dependencies
+# - Q-Insight: Based on InternVL
+# - ArtiMuse: Aesthetic assessment model
+# - Sa2VA: Segmentation model
+# - DINOv2/DINOv3: Feature extraction
+
+# For development/testing
+pytest>=7.0.0

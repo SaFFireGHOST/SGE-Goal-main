@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.DS_Store
+.venv/
+*.log
+nohup.out
+
+# Model weights and checkpoints (released separately on Hugging Face)
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.pkl
+loftr_weights/
+
+# Upstream checkouts created by third_party/fetch_third_party.sh
+data_pipeline/XMem/
+data_pipeline/segment-anything/
+evaluator/XMem/
+evaluator/segment-anything/
+baselines/susie/susie/
+baselines/clover/CLOVER/
+downstream/calvin/gr_mg/CLOVER-repo/
+
+# Local test data and generated outputs
+*test_data*/
+downstream/simpler_bridge/inferencers/
+baselines/ablations/*/models/

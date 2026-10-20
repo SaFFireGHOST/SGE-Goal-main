@@ -1,0 +1,68 @@
+diff --git a/octo/data/dataset.py b/octo/data/dataset.py
+index fe247f3..59c5a8d 100644
+--- a/octo/data/dataset.py
++++ b/octo/data/dataset.py
+@@ -1,3 +1,4 @@
++import os
+ from functools import partial
+ import json
+ from typing import Callable, Mapping, Optional, Sequence, Tuple, Union
+@@ -215,6 +216,13 @@ def apply_frame_transforms(
+     )
+ 
+     if train:
++        # Apply `fn_task` to the (un-chunked) task dict and `fn_obs` to the
++        # chunked observation dict, so the two can use different seeds.
++        def apply_obs_transform_split(fn_task, fn_obs, frame: dict) -> dict:
++            frame["task"] = fn_task(frame["task"])
++            frame["observation"] = dl.vmap(fn_obs)(frame["observation"])
++            return frame
++
+         # augment all images with the same seed, skipping padding images
+         def aug_and_dropout(frame: dict):
+             seed = tf.random.uniform([2], maxval=tf.dtypes.int32.max, dtype=tf.int32)
+@@ -228,7 +236,26 @@ def apply_frame_transforms(
+                 obs_transforms.augment, seed=seed, augment_kwargs=image_augment_kwargs
+             )
+             frame = apply_obs_transform(dropout_fn, frame)
+-            frame = apply_obs_transform(aug_fn, frame)
++            if os.environ.get("OCTO_DESYNC_TASK_AUG", "0") == "1":
++                # Goal-image augmentation de-synchronisation (GHIL-Glue,
++                # arXiv:2410.20018). By default Octo augments the observation and
++                # the goal image with the SAME seed, so a policy can partly infer
++                # the observation->goal relationship from shared crop/colour
++                # artifacts instead of from goal content. That shortcut does not
++                # exist at evaluation time, where the goal is a separately
++                # generated image -- which is exactly the axis this benchmark
++                # measures. Draw an independent seed for the task image.
++                task_seed = tf.random.uniform(
++                    [2], maxval=tf.dtypes.int32.max, dtype=tf.int32
++                )
++                aug_fn_task = partial(
++                    obs_transforms.augment,
++                    seed=task_seed,
++                    augment_kwargs=image_augment_kwargs,
++                )
++                frame = apply_obs_transform_split(aug_fn_task, aug_fn, frame)
++            else:
++                frame = apply_obs_transform(aug_fn, frame)
+             return frame
+ 
+         dataset = dataset.frame_map(aug_and_dropout, num_parallel_calls)
+diff --git a/octo/utils/visualization_lib.py b/octo/utils/visualization_lib.py
+index 6671be4..cc28b4f 100644
+--- a/octo/utils/visualization_lib.py
++++ b/octo/utils/visualization_lib.py
+@@ -546,8 +546,10 @@ class WandBFigure:
+ 
+     def __exit__(self, exc_type, exc_value, traceback):
+         self.canvas.draw()
+-        out_image = np.frombuffer(self.canvas.tostring_rgb(), dtype="uint8")
+-        self.image = out_image.reshape(self.fig.canvas.get_width_height()[::-1] + (3,))
++        # matplotlib 3.10 removed FigureCanvasAgg.tostring_rgb(), which crashes
++        # the first evaluation callback of a run. buffer_rgba() exists across
++        # versions; drop the alpha channel.
++        self.image = np.asarray(self.canvas.buffer_rgba())[..., :3].copy()
+         plt.close(self.fig)
+ 
+ 

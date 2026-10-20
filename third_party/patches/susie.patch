@@ -1,0 +1,44 @@
+diff --git a/susie/model.py b/susie/model.py
+index ecadbc9..3e8c0ec 100644
+--- a/susie/model.py
++++ b/susie/model.py
+@@ -60,9 +60,16 @@ def load_vae(
+         path, revision = path.split(":")
+     else:
+         revision = None
+-    vae, vae_params = FlaxAutoencoderKL.from_pretrained(
+-        path, subfolder="vae", revision=revision
+-    )
++    # Try to load Flax weights, fallback to converting from PyTorch
++    try:
++        vae, vae_params = FlaxAutoencoderKL.from_pretrained(
++            path, subfolder="vae", revision=revision
++        )
++    except (OSError, EnvironmentError):
++        logging.info(f"Flax VAE weights not found, converting from PyTorch...")
++        vae, vae_params = FlaxAutoencoderKL.from_pretrained(
++            path, subfolder="vae", revision=revision, from_pt=True
++        )
+     # monkey-patch encode to use channels-last (it returns a FlaxDiagonalGaussianDistribution object, which is already
+     # channels-last)
+     vae.encode = lambda self, sample, *args, **kwargs: FlaxAutoencoderKL.encode(
+@@ -121,9 +128,16 @@ def load_text_encoder(
+         path, revision = path.split(":")
+     else:
+         revision = None
+-    text_encoder = FlaxCLIPTextModel.from_pretrained(
+-        path, subfolder="text_encoder", revision=revision
+-    )
++    # Try to load Flax weights, fallback to converting from PyTorch
++    try:
++        text_encoder = FlaxCLIPTextModel.from_pretrained(
++            path, subfolder="text_encoder", revision=revision
++        )
++    except (OSError, EnvironmentError):
++        logging.info(f"Flax text encoder weights not found, converting from PyTorch...")
++        text_encoder = FlaxCLIPTextModel.from_pretrained(
++            path, subfolder="text_encoder", revision=revision, from_pt=True
++        )
+     tokenizer = CLIPTokenizer.from_pretrained(
+         path, subfolder="tokenizer", revision=revision
+     )

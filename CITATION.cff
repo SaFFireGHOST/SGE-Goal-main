@@ -1,0 +1,37 @@
+# TEMPORARY citation: the paper is accepted at WACV 2027 but not yet published and has no preprint.
+# Update with the proceedings (pages, DOI) or the arXiv entry once available.
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper below."
+title: "SGE-Goal"
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/Riddhi-Chatterjee/SGE-Goal"
+authors:
+  - family-names: Chatterjee
+    given-names: Riddhi
+    affiliation: "International Institute of Information Technology Bangalore (IIIT-B)"
+  - family-names: Shrirao
+    given-names: Ritish
+    affiliation: "International Institute of Information Technology Bangalore (IIIT-B)"
+  - family-names: Mehrotra
+    given-names: Kushagra
+    affiliation: "International Institute of Information Technology Bangalore (IIIT-B)"
+  - family-names: Gopalakrishnan
+    given-names: Viswanath
+    affiliation: "International Institute of Information Technology Bangalore (IIIT-B)"
+preferred-citation:
+  type: conference-paper
+  title: "Goal Images Are Control Targets: Spatially-Grounded Goal-Image Synthesis for Robotic Manipulation"
+  authors:
+    - family-names: Chatterjee
+      given-names: Riddhi
+    - family-names: Shrirao
+      given-names: Ritish
+    - family-names: Mehrotra
+      given-names: Kushagra
+    - family-names: Gopalakrishnan
+      given-names: Viswanath
+  collection-title: "Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)"
+  conference:
+    name: "IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)"
+  year: 2027

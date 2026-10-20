@@ -1,0 +1,34 @@
+# Environment used for Octo-ft training and evaluation (Python 3.10, CUDA 12).
+# Install JAX first, then Octo with setup_octo.sh, then CALVIN (see README).
+jax==0.4.20
+jaxlib==0.4.20+cuda12.cudnn89      # pip install ... -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+flax==0.7.5
+optax==0.1.5
+chex==0.1.85
+distrax==0.1.5
+orbax-checkpoint==0.4.4
+ml_collections==1.1.0
+ml-dtypes==0.2.0
+numpy==1.24.3
+scipy==1.11.4
+tensorflow==2.15.0
+tensorflow-datasets==4.9.2
+tensorflow-metadata==1.14.0
+tensorflow-probability==0.23.0
+tensorflow-text==2.15.0
+tensorflow-hub==0.15.0
+dlimp @ git+https://github.com/kvablack/dlimp@5edaa4691567873d495633f2708982b42edf1972
+transformers==4.36.2
+huggingface_hub
+einops
+requests
+# evaluation in the CALVIN simulator (same stack as downstream/calvin/gr_mg)
+torch==2.1.2
+pytorch-lightning==1.8.6
+hydra-core==1.1.1
+omegaconf==2.1.2
+pybullet==3.2.7
+gym==0.21.0
+numpy-quaternion
+termcolor
+pyarrow

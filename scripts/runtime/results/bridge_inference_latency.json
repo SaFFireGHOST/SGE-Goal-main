@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-05-09T12:10:02.898076Z",
+  "data_dir": "/home/riddhi/SGE-Goal-Inferencers/flux-kontext-dev-ft/bridge_and_calvin/dummy_test_data",
+  "fer_checkpoint_dir": "/home/riddhi/SGE-Goal-Inferencers/flux-kontext-dev-ft/bridge_and_calvin/bridge-fer-mask-prediction-checkpoint/kontext-bridge-fer-checkpoint-epoch-38",
+  "image_editing_checkpoint_dir": "/home/riddhi/SGE-Goal-Inferencers/flux-kontext-dev-ft/bridge_and_calvin/bridge-image-editing-checkpoint/kontext-ie-checkpoint-epoch-18",
+  "repeats": 1,
+  "summaries": [
+    {
+      "component": "IER",
+      "runs": 1,
+      "mean_s": 79.92224730784073,
+      "std_s": 0.0,
+      "min_s": 79.92224730784073,
+      "max_s": 79.92224730784073,
+      "all_s": [
+        79.92224730784073
+      ]
+    },
+    {
+      "component": "FER",
+      "runs": 1,
+      "mean_s": 392.59115092782304,
+      "std_s": 0.0,
+      "min_s": 392.59115092782304,
+      "max_s": 392.59115092782304,
+      "all_s": [
+        392.59115092782304
+      ]
+    },
+    {
+      "component": "IMAGE_EDITING",
+      "runs": 1,
+      "mean_s": 642.1190560110845,
+      "std_s": 0.0,
+      "min_s": 642.1190560110845,
+      "max_s": 642.1190560110845,
+      "all_s": [
+        642.1190560110845
+      ]
+    },
+    {
+      "component": "TOTAL",
+      "runs": 1,
+      "mean_s": 1114.6329900901765,
+      "std_s": 0.0,
+      "min_s": 1114.6329900901765,
+      "max_s": 1114.6329900901765,
+      "all_s": [
+        1114.6329900901765
+      ]
+    }
+  ]
+}
