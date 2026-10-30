@@ -1,0 +1,37 @@
+{
+  "skeleton_source": "eval_inputs/chain_skeletons.json",
+  "results_dir": "eval_results",
+  "total_hf_rows": 1087,
+  "methods": [
+    "ground_truth"
+  ],
+  "table": {
+    "ground_truth": {
+      "1": {
+        "success_rate": 0.735050597976081,
+        "sum_successes": 799,
+        "num_instances": 1087
+      },
+      "2": {
+        "success_rate": 0.6325066095933526,
+        "sum_successes": 5024,
+        "num_instances": 7943
+      },
+      "3": {
+        "success_rate": 0.5115258481903285,
+        "sum_successes": 42894,
+        "num_instances": 83855
+      },
+      "4": {
+        "success_rate": 0.42029552533616954,
+        "sum_successes": 442588,
+        "num_instances": 1053040
+      },
+      "5": {
+        "success_rate": 0.3683912723215196,
+        "sum_successes": 4607610,
+        "num_instances": 12507381
+      }
+    }
+  }
+}

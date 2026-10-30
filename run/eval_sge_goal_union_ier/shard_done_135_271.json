@@ -1,0 +1,9 @@
+{
+  "method_name": "sge_goal_union_ier",
+  "row_start": 135,
+  "row_end": 271,
+  "evaluated": 136,
+  "skipped": 0,
+  "success_count": 79,
+  "shard_success_rate": 0.5808823529411765
+}

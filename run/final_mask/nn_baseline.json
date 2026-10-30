@@ -1,0 +1,22 @@
+{
+ "validation_gt_mi": {
+  "nn1": 0.4277716519566507,
+  "nn5_vote": 0.43995824264804995,
+  "nn5_best": 0.5419573435655608,
+  "copy_initial_mask": 0.38136825188150103,
+  "frac_ge_0.5_nn1": 0.34765625,
+  "frac_ge_0.5_nn5_vote": 0.375,
+  "frac_ge_0.5_nn5_best": 0.6328125,
+  "frac_ge_0.5_copy_initial_mask": 0.26953125
+ },
+ "test_learned_mi": {
+  "nn1": 0.39651323614710315,
+  "nn5_vote": 0.422017748406431,
+  "step2_current": 0.3406808618049005,
+  "copy_initial_mask": 0.343057209566867,
+  "frac_ge_0.5_nn1": 0.30542778288868444,
+  "frac_ge_0.5_nn5_vote": 0.35878564857405704,
+  "frac_ge_0.5_step2_current": 0.17295308187672492,
+  "frac_ge_0.5_copy_initial_mask": 0.23183072677092917
+ }
+}

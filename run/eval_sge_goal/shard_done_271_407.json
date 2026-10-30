@@ -1,0 +1,9 @@
+{
+  "method_name": "sge_goal",
+  "row_start": 271,
+  "row_end": 407,
+  "evaluated": 136,
+  "skipped": 0,
+  "success_count": 53,
+  "shard_success_rate": 0.3897058823529412
+}

@@ -1,0 +1,9 @@
+{
+  "method_name": "sge_goal_union_gtmf",
+  "row_start": 362,
+  "row_end": 543,
+  "evaluated": 181,
+  "skipped": 0,
+  "success_count": 126,
+  "shard_success_rate": 0.6961325966850829
+}

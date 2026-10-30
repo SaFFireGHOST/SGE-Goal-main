@@ -1,0 +1,37 @@
+{
+  "skeleton_source": "/home/sgeextn/SGE-Goal-Cleaned/sge_followup_variant_a/policy/chain_skeletons.json",
+  "results_dir": "eval_results",
+  "total_hf_rows": 1087,
+  "methods": [
+    "sge_goal"
+  ],
+  "table": {
+    "sge_goal": {
+      "1": {
+        "success_rate": 0.531738730450782,
+        "sum_successes": 578,
+        "num_instances": 1087
+      },
+      "2": {
+        "success_rate": 0.2608586176507617,
+        "sum_successes": 2072,
+        "num_instances": 7943
+      },
+      "3": {
+        "success_rate": 0.09343509629717965,
+        "sum_successes": 7835,
+        "num_instances": 83855
+      },
+      "4": {
+        "success_rate": 0.03471093215832257,
+        "sum_successes": 36552,
+        "num_instances": 1053040
+      },
+      "5": {
+        "success_rate": 0.018403852892943776,
+        "sum_successes": 230184,
+        "num_instances": 12507381
+      }
+    }
+  }
+}

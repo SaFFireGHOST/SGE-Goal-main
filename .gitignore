@@ -27,3 +27,21 @@ downstream/calvin/gr_mg/CLOVER-repo/
 *test_data*/
 downstream/simpler_bridge/inferencers/
 baselines/ablations/*/models/
+
+# Follow-up experiments (run/): scripts, configs, metrics and per-row results are tracked;
+# data, checkpoints, generated images, installed deps and logs stay local
+*.pt
+*.parquet
+run/calvin/hf_dataset/
+run/calvin/d_train/
+run/calvin/_scratch/
+run/CALVIN-EVALS/
+run/ckpts/
+run/eval_inputs/*
+!run/eval_inputs/*.json
+run/eval_results/
+run/gr_mg_ws/
+run/logs/
+run/pydeps/
+run/pydeps_grmg/
+run/third_party/

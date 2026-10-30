@@ -1,0 +1,22 @@
+{
+  "contexts": 300,
+  "goals_per_context": 4,
+  "start_states": 2,
+  "single_goal_SR": 0.6016666666666667,
+  "SR_by_start_state": [
+    0.6175,
+    0.5858333333333333
+  ],
+  "best_of_goals_naive": 0.7916666666666666,
+  "best_goal_cross_fitted_SR": 0.695,
+  "headroom_cross_fitted_pts": 9.333333333333334,
+  "headroom_95ci_pts": [
+    7.152777777777778,
+    11.694444444444443
+  ],
+  "mixed_outcomes_any_rollout": 0.52,
+  "mixed_outcomes_between_goals": 0.51,
+  "rollout_flip_rate_same_goal": 0.13166666666666665,
+  "determinism_v0_p0_vs_previous_eval": 0.95,
+  "gate0_pass": true
+}

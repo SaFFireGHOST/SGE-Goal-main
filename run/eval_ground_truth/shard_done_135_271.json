@@ -1,0 +1,9 @@
+{
+  "method_name": "ground_truth",
+  "row_start": 135,
+  "row_end": 271,
+  "evaluated": 136,
+  "skipped": 0,
+  "success_count": 93,
+  "shard_success_rate": 0.6838235294117647
+}
