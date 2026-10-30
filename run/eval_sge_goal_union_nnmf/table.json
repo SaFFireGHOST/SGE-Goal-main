@@ -1,0 +1,37 @@
+{
+  "skeleton_source": "/home/sgeextn/SGE-Goal-Cleaned/SGE-Goal-main/run/eval_inputs/chain_skeletons.json",
+  "results_dir": "/home/sgeextn/SGE-Goal-Cleaned/SGE-Goal-main/run/eval_results",
+  "total_hf_rows": 1087,
+  "methods": [
+    "sge_goal_union_nnmf"
+  ],
+  "table": {
+    "sge_goal_union_nnmf": {
+      "1": {
+        "success_rate": 0.6632934682612696,
+        "sum_successes": 721,
+        "num_instances": 1087
+      },
+      "2": {
+        "success_rate": 0.43182676570565276,
+        "sum_successes": 3430,
+        "num_instances": 7943
+      },
+      "3": {
+        "success_rate": 0.2688092540695248,
+        "sum_successes": 22541,
+        "num_instances": 83855
+      },
+      "4": {
+        "success_rate": 0.16931645521537644,
+        "sum_successes": 178297,
+        "num_instances": 1053040
+      },
+      "5": {
+        "success_rate": 0.12438847109558748,
+        "sum_successes": 1555774,
+        "num_instances": 12507381
+      }
+    }
+  }
+}
