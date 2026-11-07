@@ -1,0 +1,9 @@
+{
+  "method_name": "sge_goal_union_nnmf2",
+  "row_start": 407,
+  "row_end": 543,
+  "evaluated": 136,
+  "skipped": 0,
+  "success_count": 92,
+  "shard_success_rate": 0.6764705882352942
+}

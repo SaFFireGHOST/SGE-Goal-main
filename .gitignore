@@ -45,3 +45,4 @@ run/logs/
 run/pydeps/
 run/pydeps_grmg/
 run/third_party/
+run/final_mask/step2_samples/

@@ -1,7 +1,7 @@
 # Plan, part 2: the final mask (Step 2) for SGE-Goal on CALVIN
 
 Continues [`plan.md`](plan.md), whose §1–5 (learned `M_i`, Gate 0, Variant A contexts) still hold;
-its §6–8 are superseded here. Last updated 2026-11-06.
+its §6–8 are superseded here. Last updated 2026-11-07.
 
 **Summary.**
 - **Pipeline:** Step 1 learned `M_i` (EVF-SAM, test IoU 0.715) → Step 2 `M_f` (released FLUX-Kontext
@@ -16,14 +16,22 @@ its §6–8 are superseded here. Last updated 2026-11-06.
   - IoU-DPO: held-out IoU 0.340 → 0.369, but `va_val` success 64.0 vs Ref 64.2 (§3.2).
   - One-step masks: IoU 0.417, but `va_val` success 63.8 (§3.4).
   - `M_i` dropout alone: held-out IoU 0.340 → 0.354, but masks still ignore the instruction (§3.7).
+  - Counterfactual Flow-DPO on 537 same-place pairs: pair accuracy stayed at chance, even on train pairs, and
+    the language test didn't move (0.966) (§3.10). It can't fit even 16 pairs (§3.11).
+- **The model has no usable mapping from instruction to mask (§3.12).** Swapping the instruction moves
+  sampled masks by 0.036 (1 − IoU) vs 0.54 for another seed. Stronger guidance (true CFG 4) triples that
+  movement, but not toward the right mask. Supervised counterfactual training on 16 pairs learns a little
+  (sampled cf hit 0.27 → 0.34) but slowly.
 - **Retrieval:** copying `M_f` from similar training tuples (tuned: **71.21** CL1) beats Step 2 and is not
   significantly below ground-truth `M_f` at CL1, though long chains stay well below it. It is CALVIN-only
   memorisation, a diagnostic, not a method.
 - **Diagnosis:** Step 2 barely uses the instruction (§3.5). Opposite instructions give masks with IoU 0.975
   with the original, while real masks for opposite tasks differ a lot. The image and `M_i` drive the output,
   and the seed changes it far more than the text does. Sampling variance (§3.1) is a separate weakness.
-- **Next:** counterfactual Flow-DPO on same-scene pairs with different instructions (§5). A perfect `M_f`
-  beats retrieval by only 1.66 CL1, so a learned model must justify itself beyond this CALVIN CL1 number.
+- **Next:** a supervised overfit on 16 counterfactual pairs with the loss weighted on the region where the
+  two masks differ (§5, item 1). It decides whether to scale counterfactual training up or change how the
+  instruction enters the model. A perfect `M_f` beats retrieval by only 1.66 CL1, so a learned model must
+  justify itself beyond this CALVIN CL1 number.
 
 ---
 
@@ -352,13 +360,151 @@ close.
 - **Reading:** removing `M_i` doesn't force the text. Only rows where the image and `M_i` are the same and the
   answer flips can do that.
 
+### 3.8 Prompt format: not the bottleneck
+
+`run/final_mask/diag_text_embed.py` → `run/final_mask/text_embed_test.json`. Frozen CLIP-L and T5-XXL only, on the
+96 language-test rows, for three prompt encodings: the current one (instruction + fixed paragraph to both
+encoders), instruction only, and split (instruction only to CLIP, current to T5). Distances from the original
+instruction's embedding:
+
+| Instruction changed to | CLIP pooled, current | CLIP pooled, instruction only | T5 instruction tokens, current | T5, instruction only |
+|---|---|---|---|---|
+| Opposite task | 0.014 | 0.042 | 0.119 | 0.110 |
+| Other wording, same task | 0.061 | 0.202 | 0.473 | 0.513 |
+| Task from another group | 0.163 | 0.520 | 0.549 | 0.628 |
+
+- The paragraph dilutes CLIP about 3×, but in every encoding the opposite instruction sits closer to the original
+  than a rewording does. The opposite is further in only 1–10% of rows.
+- Dropping the paragraph wouldn't make opposites distinguishable to the frozen encoders, so the prompt was left as
+  is. The model has to learn direction from words that change by one token.
+
+### 3.9 Counterfactual pairs
+
+`run/final_mask/build_cf_pairs.py` → `run/final_mask/cf_pairs.json`. Image sheets: `sheet_cf_pairs.py` →
+`run/final_mask/cf_pairs_sheets/`.
+
+- **Rule:** two HF train rows with the same block colour and a different task, scene L1 < 6 (32×32), and the
+  block in the same place. Same place means block IoU ≥ 0.5 by colour segmentation at 208×208, both ≥ 30 px.
+  Each row's ground-truth `M_i` must cover ≥ 0.3 of its block (drops broken labels). Each row keeps at most 3
+  partners.
+- **Articulated tasks are left out:** their pairs are opposite states (LED on vs off), so the other row's
+  instruction isn't valid for this image.
+- **Why the block filter:** in the sheets, many pairs at L1 4–6 had the block on the shelf in one image and
+  on the table in the other.
+- **Split by episode:** 25% of episodes by hash are held out (48 episodes, 7,112 rows); they're also removed
+  from the anchor rows in training.
+
+| Split | Pairs | Rows | L1 < 3 | Real `M_f` IoU between the two | `M_i` IoU | Same video |
+|---|---|---|---|---|---|---|
+| Train | 537 | 555 | 56 | 0.374 | 0.512 | 47% |
+| Held-out | 115 | 147 | 24 | 0.378 | 0.489 | 78% |
+| HF validation | 1 | 2 | 0 | – | – | – |
+
+- **Mostly push vs rotate and rotate left vs right;** few opposite push pairs. Train top pairs: push right vs
+  rotate left 111, push right vs rotate right 90, rotate left vs rotate right 78.
+
+### 3.10 Counterfactual Flow-DPO: done, negative
+
+`sge_goal/final_mask/train_step2_cfdpo.py`, `run/final_mask/run_cfdpo_step2.sh` →
+`run/final_mask/training/cfdpo_step2/`, `run/final_mask/cfdpo_val/cfdpo_step2/`.
+
+- **Setup:** as in §5 of the previous version of this plan:
+  - loss: L = flow MSE + 25 × channel consistency on anchor rows + (L_own + L_other) / 2;
+  - init and reference = `midrop_step2/last`, β 300, λ 1, lr 5e-5;
+  - each update: 8 pair items (both orientations) + 8 anchor rows;
+  - 1.5 epochs = 201 updates (~54 s each), ~8.5 h with validations and stages.
+- **Dropout:** anchor rows 25% black `M_i` + 25% damaged; pair rows 25% damaged, the same damage in all
+  four terms.
+- **Pair metrics** (fixed noise, 3 draws per pair; held-out 115 pairs, 115 train pairs). Chance is 0.5:
+  - `text_acc`: E(M | right T) < E(M | wrong T), with only the text changed;
+  - `cf_acc`: under the other row's text, prefers the other row's mask.
+
+| | Released | Step 0 (midrop) | Step 201 |
+|---|---|---|---|
+| Held-out `text_acc` | 0.496 | 0.478 | 0.526 |
+| Held-out `cf_acc` | 0.383 | 0.409 | 0.426 |
+| Train `text_acc` | 0.574 | 0.522 | 0.565 |
+| Train `cf_acc` | 0.313 | 0.330 | 0.357 |
+| Train DPO accuracy | – | – | 0.49 (≈ 0.5 at every validation) |
+
+- **Pair accuracy:** moves are within noise (±0.047 per 115 pairs). The run didn't fit its own training pairs.
+  The text gap (relative error change from the instruction) stayed around 1e-4.
+- **Language test:** opposite-instruction agreement 0.966 (midrop 0.971); the bar was < 0.7. Failed.
+- **Held-out IoU (710 rows):** 0.345 vs released 0.340 (+0.004, CI 0.000, 0.009). That's below midrop's 0.354.
+  Validation IoU (256 rows): 0.345 → 0.336.
+- **Training signal was noisy:** per-update DPO loss jumped up to 8.9. Gradient norms of 4–47 were clipped to
+  1.0, and held-out DPO loss rose to 1.09 from 0.69.
+- **Decision rule:** pair accuracy rose on neither train nor held-out, so don't generate GR-MG rollouts yet.
+
+### 3.11 Overfit tests on 16 train pairs
+
+`run/final_mask/run_cfdpo_overfit.sh`.
+- **Setup:** `--n-train-pairs 16 --no-anchor --skip-held --pair-mi-damage 0`, from `midrop_step2/last`. The
+  pairs are scored on themselves (orientation a, 3 fixed noise draws, 16 pairs × 2 directions).
+- **Length:** 120 updates = 30 passes.
+
+| | DPO (β 300, lr 2e-4, clip 50) | Supervised `--sft-cf` (lr 2e-4, clip 1) |
+|---|---|---|
+| `text_acc`, step 0 → 120 | 0.50 → 0.56 | 0.50 → 0.66 |
+| `cf_acc` | 0.19 → 0.13 | 0.19 → 0.38 |
+| `own_acc` | 0.81 → 0.88 | 0.81 → 0.63 |
+| Fixed-noise loss on the trained pairs | DPO 0.69 → 1.82 (worse) | flow ~0.04–0.06, flat |
+| IoU, 32 val rows (no anchor, so it drifts) | 0.363 → 0.306 | 0.363 → 0.308 |
+| Time per update | 46 s | 20 s |
+
+- **DPO can't fit 16 pairs.** It learned "prefer row c's own mask" whatever the text says, and the per-update
+  loss swung 0.2–12.9: the β 300 logits are driven by the noise draw.
+- **Supervised moves the right way, slowly.**
+- **Not a plumbing bug:**
+  - each instruction has its own cached embedding;
+  - the LoRA covers the text-stream modules (`add_q/k/v_proj`, `to_add_out`, `ff_context`);
+  - the masks of these 16 pairs differ (mean IoU 0.43).
+- **`--sft-cf` loss:** flow loss of M_c under T_c and M_o under T_o, both on row c's image and `M_i`.
+
+### 3.12 Sampled masks on the pairs, and guidance
+
+`run/final_mask/sample_cf_pairs.py` → `run/final_mask/cf_sample/overfit_samples.json`,
+`guidance_midrop.json`.
+- **Setup:** 10-step masks from row c's image and ground-truth `M_i`, under T_c and under T_o with the same seed.
+  The 16 overfit pairs × 2 orientations × 2 seeds, plus 32 held-out pairs × 2 orientations.
+- **Shift metrics:** text shift = 1 − IoU(P_c, P_o); seed shift = same text, other seed. Ground-truth masks
+  differ by 0.57.
+- **cf hit:** under T_o, the output is closer to M_o than to M_c.
+
+| Checkpoint / setting | Text shift, train / held-out | Seed shift | cf hit, train / held-out | IoU under T_c with M_c, train / held-out |
+|---|---|---|---|---|
+| midrop, guidance 1 (as trained and released) | 0.036 / 0.045 | 0.544 | 0.27 / 0.39 | 0.451 / 0.438 |
+| Supervised overfit | 0.052 / 0.053 | 0.514 | 0.34 / 0.36 | 0.399 / 0.383 |
+| DPO overfit | 0.059 / 0.059 | 0.618 | 0.30 / 0.42 | 0.392 / 0.372 |
+| midrop, embedded guidance 2.5 | 0.055 / 0.051 | 0.530 | 0.23 / 0.41 | 0.456 / 0.437 |
+| midrop, embedded guidance 3.5 | 0.050 / 0.067 | 0.492 | 0.28 / 0.38 | 0.473 / 0.446 |
+| midrop, true CFG 2 (negative = no instruction) | 0.072 / 0.076 | 0.530 | 0.23 / 0.42 | 0.459 / 0.445 |
+| midrop, true CFG 4 | 0.120 / 0.113 | 0.512 | 0.27 / 0.41 | 0.466 / 0.450 |
+
+- **The instruction barely moves the output:** about 15× less than the seed does.
+- **Guidance amplifies the instruction's effect without direction:** true CFG 4 triples the text shift, but
+  cf hit doesn't rise. So it's not that the signal is weak; midrop has no mapping from "left / right / rotate /
+  lift" to where the mask goes.
+- **Embedded guidance is 1.0 everywhere:** in training (`guidance=1.0` in the trainer), in the released inference
+  config and in our scripts.
+- **Side note to verify:** embedded guidance 3.5 slightly raises IoU (0.451 → 0.473 on these rows). Worth a check
+  on the 710 held-out rows; not done.
+- **Why the loss sees the signal weakly (likely, not proven):** the flow MSE is averaged over the whole latent,
+  the two masks differ in a small part of it, and the per-step noise dominates. DPO, a difference of such
+  differences, is worse.
+
 ---
 
-## 4. Jobs (as of 2026-11-06)
+## 4. Jobs (as of 2026-11-07)
 
-Nothing is running. Last chain: `run/final_mask/run_midrop_step2.sh`, `MIDROP_DONE` on 2026-11-04 15:46, log
-`run/logs/fm_midrop.log`. Its language test crashed four times out of memory because of other users' jobs, costing
-about 15 h; the script now retries.
+Nothing is running.
+- **Weighted overfit** (`run/final_mask/run_cfsft_weighted.sh`, §5 item 1): launched 2026-11-07. It ran out of
+  memory at model load at 18:30, because another user's job took 34.8 GB, and it never trained. It was then
+  stopped, to be run on another server.
+- **`run_cfdpo_overfit.sh` doesn't retry;** `run_cfdpo_step2.sh` does.
+- **Earlier:**
+  - `run_midrop_step2.sh` finished 2026-11-04;
+  - `run_cfdpo_step2.sh` reached `CFDPO_DONE` on 2026-11-06 10:59 (§3.10).
 
 ---
 
@@ -367,40 +513,42 @@ about 15 h; the script now retries.
 Focus is CALVIN only, aiming at a paper-level contribution. A deterministic predictor alone is not considered
 that, so it is no longer the main direction.
 
-1. **Counterfactual Flow-DPO + dropout on close-scene pairs (next).** No rollouts or pipeline needed.
-   - **Pairs:** same-object, different-instruction rows from the HF train set (about 325 rows at L1 < 3, looser if
-     needed). This includes opposite pairs. Split by video. Check an image sheet of the pairs before training.
-   - **Conditioning:** keep row A's image and `M_i` for both directions; only the instruction and which mask is good
-     change. Mask B is only approximately right for image A, which suits a preference loss better than a
-     supervised target.
-   - **Loss**, same noise `ε` and `σ` everywhere, reference = frozen starting LoRA:
+Counterfactual Flow-DPO (the previous item 1) is done and negative (§3.10–3.12).
 
-     ```text
-     E_θ(M|T) = || v_θ(z(M), σ, I, M_i, T) − (ε − x(M)) ||²,  z(M) = (1 − σ)·x(M) + σ·ε
-     Δ(M|T)   = E_θ(M|T) − E_ref(M|T)
-     L_a = −log sigmoid( −β [ Δ(M_a|T_a) − Δ(M_b|T_a) ] )
-     L_b = −log sigmoid( −β [ Δ(M_b|T_b) − Δ(M_a|T_b) ] )
-     L   = flow MSE + 25 × channel consistency (σ < 0.35) + λ (L_a + L_b) / 2
-     ```
+1. **Weighted supervised overfit on 16 pairs (next; script ready, never trained).**
+   `bash run/final_mask/run_cfsft_weighted.sh` (detached) runs the same 16 pairs as §3.11 with `--sft-cf
+   --diff-weight 20`.
+   - **Loss:** latent cells where M_c and M_o differ in any pixel weigh 21×, others 1×; the loss is the weighted
+     mean per example. `pred − target = x − x̂0`, so it uses the trainer's one-step estimate.
+   - **Settings:** lr 2e-4, clip 1, 300 updates (~75 passes), validation every 50.
+   - **Then:** sampled masks on the 16 pairs + 32 held-out pairs (`sample_cf_pairs.py`) →
+     `run/final_mask/cf_sample/cfsft_w20.json`.
+   - **Cost:** ~20–25 s per update, ~26.4 GB peak, ~2.5 h in all.
+   - **Read the sampled cf hit on the 16 pairs** (midrop 0.27, unweighted supervised 0.34):
 
-     The formula is `dpo_loss` in `sge_goal/variant_a/flux_lora_trainer.py`, except the instruction must switch
-     between `L_a` and `L_b`.
-   - **Settings:** start from `run/final_mask/training/midrop_step2/last`, which also makes that run the control.
-     λ = 1. β ≈ 300 is a starting guess; at 1000, IoU-DPO's held-out pair loss was unstable.
-   - **Dropout:** normal rows 25% black + 25% damaged. Pair rows 0% black, 25% damaged with the same damage on both
-     sides, because the test always has a real `M_i`.
-   - **Estimated time:** a few hours to build, ~3.5 h to train, ~1.75 h to evaluate. Needs ~30 GB free.
-   - **Checks:** language test (opposite-text agreement below ~0.7 with real `M_i`), held-out IoU not below 0.340, and
-     pair accuracy: is the output closer to the right mask than to the other instruction's mask? Agreement alone could
-     fall from noise.
-
-     | Pair accuracy | Meaning | Next |
+     | Result | Meaning | Next |
      |---|---|---|
-     | Rises on train and held-out | It works | `va_val` rollouts vs Ref 64.2 |
-     | Rises on train only | Too few pairs | Step 2 below |
-     | Rises on neither | The approach isn't working | Rethink before spending on rollouts |
+     | ≥ ~0.8, text shift ≫ 0.05 | The model can learn the mapping; the loss was the problem | Item 2 |
+     | 0.4–0.8 | Learns, slowly | Try `DW` 50–100, lr 5e-4, more updates before item 2 |
+     | ≤ ~0.4 | The text pathway is the limit | Item 3 |
 
-2. **GR-MG same-start rollouts (only if short of pairs; the paper author's suggestion).** Run several instructions on
+   - **If it fails, also try** `DW=0` with 1000 updates, to separate "too few updates" from "weighting doesn't
+     help".
+2. **Weighted counterfactual training at scale** (if item 1 passes).
+   - **Setup:** `--sft-cf --diff-weight <best>` on all 537 train pairs, with the anchor rows on (drop `--no-anchor`)
+     and held-out pairs scored. Start from `midrop_step2/last` (it's the control).
+   - **Checks:** sampled cf hit / text shift on held-out pairs (`sample_cf_pairs.py`), the language test
+     (`diag_language.py`, opposite agreement < ~0.7), held-out IoU ≥ 0.340 (`score_step2_ckpts.py`).
+   - **Then:** `va_val` rollouts vs Ref 64.2.
+   - **If it rises on train pairs only, it's short of pairs:** item 4.
+3. **Change how the instruction enters Step 2** (if item 1 fails).
+   - Candidates:
+     - a learned embedding per CALVIN task (34), or per verb + direction, added to the text tokens or the pooled
+       vector;
+     - a LoRA on the text side as well;
+     - text dropout in training, so true CFG has a trained unconditional branch.
+   - CALVIN-specific options (a task table) need the same caveat as retrieval (§3.3).
+4. **GR-MG same-start rollouts (only if short of pairs; the paper author's suggestion).** Run several instructions on
    the same object from one start state, using `--conditioning text_only` (black goal, 59.0 CL1 in the paper).
    - **Why:** exact pairs that exist no other way, and goals the policy can reach.
    - **Cost:** 233 rollouts/h measured (8 shards), so ~17 h for 1,000 scenes × 4 instructions, an upper limit of about
@@ -415,15 +563,15 @@ that, so it is no longer the main direction.
    - **Limits:** environment D only; skewed to what the policy does well (push-left 0.38–0.50 even with true goals).
    - **Full videos if needed for real demos:** re-stream `ducido/calvin_task_D_D_scale_100_lerobo_format`, or test
      re-rendering from the per-frame states in `run/calvin/d_train`.
-3. **Different-object pairs,** with shared `M_i = M_i^a ∪ M_i^b`, to reach articulated tasks (52 of the 110-row gap). They
+5. **Different-object pairs,** with shared `M_i = M_i^a ∪ M_i^b`, to reach articulated tasks (52 of the 110-row gap). They
    teach which task, not which direction, and each row's own `M_i` would leak the answer.
-4. **Retrain Step 2 with a changed recipe** if fine-tuning moves language use but not enough: counterfactual negatives,
+6. **Retrain Step 2 with a changed recipe** if fine-tuning moves language use but not enough: counterfactual negatives,
    `M_i` dropout, shorter prompt with text dropout (enables true CFG), Dice on the decoded estimate; select on sampled
    IoU + language sensitivity. Same recipe with a new loss is unlikely to help.
-5. **Does retrieval hold on harder cases?** Unseen wordings and less familiar scenes, validation only. Paused by choice.
+7. **Does retrieval hold on harder cases?** Unseen wordings and less familiar scenes, validation only. Paused by choice.
    It matters because a perfect `M_f` beats retrieval by only 1.66 CL1, so a learned model most plausibly earns its place
    on cases retrieval can't match.
-6. **Final evaluation:** the best `M_f` predictor on all 1087 test rows, once (CL1–5), cluster bootstrap vs
+8. **Final evaluation:** the best `M_f` predictor on all 1087 test rows, once (CL1–5), cluster bootstrap vs
    `sge_goal_union_ier`, `nnmf`, `nnmf2` and `gtmf`. Select only on HF validation and `va_val`.
 
 **Not recommended:**
@@ -432,14 +580,16 @@ that, so it is no longer the main direction.
 - original-image dropout: the model needs the image to locate things;
 - counterfactual losers from a completely different scene: the image alone rejects them, so language isn't needed;
 - RL as the main method: 2,400 rollouts gave 76 Step 2 pairs, with 13% label flips;
-- more plain supervised or success-DPO fine-tuning of FLUX Step 2 (both flat), or one-step as the baseline (§3.4).
+- more plain supervised or success-DPO fine-tuning of FLUX Step 2 (both flat), or one-step as the baseline (§3.4);
+- more counterfactual Flow-DPO in the §3.10 form (β 300, one noise draw per term): it can't fit 16 pairs (§3.11);
+- guidance alone as the fix for language: it amplifies the text effect without direction (§3.12).
 
 **Compute (measured on the A6000):** 1.05 s/sample, 29.9 GB peak, 6.4 h per epoch of 22k. 22 epochs ≈ 6 days. A requested
 RTX Pro 6000 is assumed ~2.5× faster (the proposal's assumption, not measured): 22 epochs ≈ 2.5–3 days.
 
 ---
 
-## 6. Files from the final-mask work (not on `main` and uncommitted unless noted)
+## 6. Files from the final-mask work (all on `main` since 2026-11-07)
 
 | File | Purpose |
 |---|---|
@@ -461,8 +611,17 @@ RTX Pro 6000 is assumed ~2.5× faster (the proposal's assumption, not measured):
 | `run/final_mask/diag_language.py` → `language_test.json` | Language test; `--checkpoint-dir`, `--black-mi` |
 | `sge_goal/final_mask/train_step2_midrop.py` | Step 2 training with `M_i` dropout (`--mi-drop`, `--mi-damage`) |
 | `run/final_mask/run_midrop_step2.sh` → `midrop_val/` | Dropout training + language tests + held-out IoU |
+| `run/final_mask/diag_text_embed.py` → `text_embed_test.json` | Prompt-format check on the frozen text encoders (§3.8) |
+| `run/final_mask/build_cf_pairs.py` → `cf_pairs.json`; `sheet_cf_pairs.py` → `cf_pairs_sheets/` | Counterfactual pairs + image sheets (§3.9) |
+| `sge_goal/final_mask/train_step2_cfdpo.py` | Counterfactual trainer: DPO (default) or `--sft-cf` [`--diff-weight`]; `--n-train-pairs`, `--no-anchor`, `--skip-held`, `--eval-only` |
+| `run/final_mask/run_cfdpo_step2.sh` → `training/cfdpo_step2/`, `cfdpo_val/` | Full counterfactual DPO + language test + held-out IoU (§3.10) |
+| `run/final_mask/run_cfdpo_overfit.sh` | 16-pair overfit tests (env: NAME, INIT, LR, BETA, CLIP, STEPS, NPAIRS, VAL_EVERY, EXTRA, PY) (§3.11) |
+| `run/final_mask/run_cfsft_weighted.sh` | Weighted supervised overfit + sampled masks (env: NAME, DW, STEPS, INIT, PY) (§5 item 1) |
+| `run/final_mask/sample_cf_pairs.py` → `cf_sample/` | Sampled masks on pairs under both instructions; `--setting name=G:C` for guidance (§3.12) |
+| `run/final_mask/env_sgegen_pip_freeze.txt` | Packages of the `sgegen` env (Python 3.11, torch 2.8.0+cu128, diffusers 0.36.0, peft 0.18.1) |
 
-`.gitignore` (tracked) gained `run/final_mask/step2_samples/` (uncommitted).
+`.gitignore` gained `run/final_mask/step2_samples/`. LoRA weights (`*.safetensors`, `*.pt`) are gitignored: `training/*/` keep
+only `args.json` and `metrics.jsonl` in git.
 
 Pair counts, mask-vs-success and label-noise figures came from session scratch scripts that are not kept; the numbers
 are recorded above.
@@ -496,8 +655,24 @@ are recorded above.
   - H100 ≈ $3.95/h; volume `sge-variant-a`; secret `huggingface-secret`.
   - Never print the HF token.
 - **Git:**
-  - branch `followup/learned-mask-variant-a`; commit only when asked;
-  - only this file has been pushed to `main`. `plan.md` and the code it depends on are on the branch (2 commits, not
-    pushed) or uncommitted (§6), so a fresh clone of `main` doesn't have them;
+  - commit only when asked; work branch `followup/learned-mask-variant-a`, merged into `main` and pushed on
+    2026-11-07 (a fresh clone of `main` has all code and results above);
   - identity `git -c user.name="SaFFireGHOST" -c user.email="Koushik.Mupparapu@iiitb.ac.in"`;
   - messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+
+### 7.1 Setting up on another server
+
+Git carries code, small results and metrics, not data or weights. Needed under the repo:
+
+| What | Where | How |
+|---|---|---|
+| HF CALVIN tuples | `run/calvin/hf_dataset/data/{train,validation,test}-*.parquet` | `huggingface-cli download RiddhiCh/Calvin-Dataset-Final --repo-type dataset --local-dir run/calvin/hf_dataset`. Row order must match: `cf_pairs.json` stores row indices, and `train_step2_cfdpo.py` / `sample_cf_pairs.py` assert the ids |
+| Learned `M_i` predictions | `run/calvin/hf_dataset/pred_ier/{train,validation}.parquet` (95 MB) | Copy from the old server (not on HF). Validation is used by `val_mask_iou` / `score_step2_ckpts.py`; regenerating needs the EVF checkpoint (`SaFFire/sge-goal`, private) and `run/predict_ier.sh` |
+| Released LoRAs | `run/ckpts/sge-goal-checkpoints/flux1-kontext-dev/calvin/{step2_final_mask,step3_goal_image}` | `huggingface-cli download RiddhiCh/SGE-Goal --include "flux1-kontext-dev/calvin/*" --local-dir run/ckpts/sge-goal-checkpoints` |
+| midrop LoRA (init of §3.10–3.12) | `run/final_mask/training/midrop_step2/last/pytorch_lora_weights.safetensors` (104 MB) | Copy from the old server; else use `INIT=<released step2_final_mask dir>` and re-run the midrop baseline in `sample_cf_pairs.py` |
+| FLUX.1-Kontext-dev base | HF cache | Gated model: an HF token with access |
+| Python env | any | `run/final_mask/env_sgegen_pip_freeze.txt`; scripts use `$PY` (default the old `sgegen` path, else `python` on `PATH`) |
+
+Old-server paths: repo `/home/sgeextn/SGE-Goal-Cleaned/SGE-Goal-main`, env `~/.conda/envs/sgegen`. Older run scripts
+(before §3.8) hard-code these and need editing elsewhere.
+
